@@ -1,5 +1,6 @@
-package org.example;
+package org.bot;
 
+import org.bot.ai.AIManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -21,22 +22,23 @@ import java.util.concurrent.TimeUnit;
 public class FriendsLip extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(FriendsLip.class);
+    private AIManager aiManager;
+    private PwdKeeper pwdKeeper;
 
-    private final DeepSeekWebClient deepSeekWebClient;
-
-    public FriendsLip() {
+    public FriendsLip(AIManager aiManager, PwdKeeper pwdKeeper) {
         scheduleWithExecutor();
-        deepSeekWebClient = new DeepSeekWebClient();
+        this.aiManager = aiManager;
+        this.pwdKeeper = pwdKeeper;
     }
 
     @Override
     public String getBotUsername() {
-        return "xxxt"; // Имя бота (без @)
+        return "SvbLibBot"; // Имя бота (без @)
     }
 
     @Override
     public String getBotToken() {
-        return "xxx"; // Токен от @BotFather
+        return pwdKeeper.getPassword("teleg"); // Токен от @BotFather
     }
 
     @Override
@@ -46,7 +48,7 @@ public class FriendsLip extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
 
             if (messageText.equals("/start")) {
-                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b /pic.".formatted(Group.getAssistantName(chatId)) +
+                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b /pic /task.".formatted(Group.getAssistantName(chatId)) +
                         " Для обращения к боту пишем в начале %s ".formatted(Group.getAssistantName(chatId)));
             } else if (messageText.equals("/pic")) {
                 // Путь к файлу (подставьте свой)
@@ -58,11 +60,8 @@ public class FriendsLip extends TelegramLongPollingBot {
                 messageText = messageText.replace("Друг", "");
                 String response;
                 try {
-                    logger.debug("q: " + messageText);
-                    response = deepSeekWebClient.request(messageText);
-                    if (response.isEmpty()) {
-                        response = "Собачка отдыхает, потом спросите.";
-                    }
+                    logger.debug("query: " + messageText);
+                    response = aiManager.getResponse(messageText);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -75,7 +74,7 @@ public class FriendsLip extends TelegramLongPollingBot {
                     String key = date + "_" + monthNumber;
                     if (BirthDay.getBirthdayMap().containsKey(key)) {
                         persons.addAll(BirthDay.getBirthdayMap().get(key)
-                                .stream().filter(t-> t.status == Group.getStatus(chatId) ||
+                                .stream().filter(t -> t.status == Group.getStatus(chatId) ||
                                         t.status == Status.admin).toList()); // из админской все доступно ??
                     }
                 }
@@ -89,8 +88,9 @@ public class FriendsLip extends TelegramLongPollingBot {
                     }
                 }
                 sendMessage(chatId, response.toString());
+            } else if (messageText.startsWith("/task")) {
+                executeDailyTask();
             }
-
         }
     }
 
@@ -121,7 +121,7 @@ public class FriendsLip extends TelegramLongPollingBot {
     private void scheduleWithExecutor() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-        LocalTime targetTime = LocalTime.of(7, 1); // 8:00 утра
+        LocalTime targetTime = LocalTime.of(7, 10); // 8:00 утра
         long initialDelay = calculateInitialDelay(targetTime);
 
         executor.scheduleAtFixedRate(
@@ -131,13 +131,7 @@ public class FriendsLip extends TelegramLongPollingBot {
                 TimeUnit.SECONDS
         );
 
-        /*  executor.schedule(
-                this::executeDailyTask,
-                60, // 24 часа в секундах
-                TimeUnit.SECONDS
-        );*/
-
-        logger.info("Executor scheduler started. Next execution at ~7:00 AM");
+        logger.info("Executor scheduler started. Next execution at {} AM", targetTime);
     }
 
     // Метод для расчета начальной задержки
@@ -169,8 +163,9 @@ public class FriendsLip extends TelegramLongPollingBot {
             }
             String response;
             if (persons.isEmpty()) {
-                String messageReq = "Какой праздник важный %s для русских людей? Отвечай кратко самое важное и значимое.".formatted(LocalDate.now().toString());
-                response = deepSeekWebClient.request(messageReq);
+                String messageReq = "Какой важный праздник или важное событие для русских людей на дату %s ? Отвечай кратко самое важное и значимое.".formatted(LocalDate.now().toString());
+                logger.debug("query_taskb: " + messageReq);
+                response = aiManager.getResponse(messageReq);
                 for (Group group : Group.getGroups()) {
                     sendMessage(group.getChatId(), "Добрый день, сегодня  " + LocalDate.now() + "\n" + response);
                 }
@@ -183,7 +178,8 @@ public class FriendsLip extends TelegramLongPollingBot {
                         desc = "годовщиной";
                     }
                     String messageReq = "Поздравь с %s %s.".formatted(desc, p.name);
-                    response = deepSeekWebClient.request(messageReq);
+                    logger.debug("query_task: " + messageReq);
+                    response = aiManager.getResponse(messageReq);
                     if (response.isEmpty()) {
                         response = messageReq + "Желаем здоровья и долгих лет жизни!";
                     }

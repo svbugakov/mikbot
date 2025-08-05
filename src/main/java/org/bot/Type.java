@@ -1,4 +1,4 @@
-package org.example;
+package org.bot;
 
 public enum Type {
     year,

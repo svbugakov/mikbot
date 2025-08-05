@@ -1,4 +1,4 @@
-package org.example;
+package org.bot;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -26,14 +26,14 @@ public class BirthDay {
 
 // Февраль
         addBirthday(birthdayMap, 19, Month.FEBRUARY, "ДЕНИС Лейба", 2016, "myfriend", "birthday");
-        addBirthday(birthdayMap, 25, Month.FEBRUARY, "ЛЕОНИД", 2020, "myfriend", "birthday");
+        addBirthday(birthdayMap, 25, Month.FEBRUARY, "ЛЕОНИД", 2020, "family", "birthday");
 
 // Март
         addBirthday(birthdayMap, 24, Month.MARCH, "Даша", 1991, "admin", "birthday");
         addBirthday(birthdayMap, 24, Month.MARCH, "Ваня", 2017, "admin", "birthday");
 
 // Апрель
-        addBirthday(birthdayMap, 1, Month.APRIL, "Оля Бугакова", 1985, "myfriend", "birthday");
+        addBirthday(birthdayMap, 1, Month.APRIL, "Оля Бугакова", 1985, "family", "birthday");
         addBirthday(birthdayMap, 9, Month.APRIL, "Паша Пажитных", 1986, "friend", "birthday");
         addBirthday(birthdayMap, 23, Month.APRIL, "Леха Камина", 1991, "myfriend", "birthday");
 
@@ -71,11 +71,11 @@ public class BirthDay {
         addBirthday(birthdayMap, 27, Month.SEPTEMBER, "Яна Бабец", 1990, "myfriend", "birthday");
 
 // Октябрь
-        addBirthday(birthdayMap, 11, Month.OCTOBER, "Дания Бугаков", 1988, "myfriend", "birthday");
+        addBirthday(birthdayMap, 11, Month.OCTOBER, "Данила Бугаков", 1988, "family", "birthday");
         addBirthday(birthdayMap, 17, Month.OCTOBER, "Миша Шепенев", 1988, "family", "birthday");
         addBirthday(birthdayMap, 17, Month.OCTOBER, "Игорь Бороненцев", 1987, "myfriend", "birthday");
         addBirthday(birthdayMap, 18, Month.OCTOBER, "Юля Иваненко", 1990, "myfriend", "birthday");
-        addBirthday(birthdayMap, 20, Month.OCTOBER, "Т. Люда", 1943, "myfriend", "birthday");
+        addBirthday(birthdayMap, 20, Month.OCTOBER, "Т. Люда", 1943, "family", "birthday");
         addBirthday(birthdayMap, 21, Month.OCTOBER, "Эммочка", 1995, "family", "birthday");
         addBirthday(birthdayMap, 23, Month.OCTOBER, "Таня Болдырева", 1986, "friend", "birthday");
 
