@@ -26,11 +26,6 @@
             <version>20250517</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.wireguard</groupId>
-            <artifactId>wireguard-java</artifactId>
-            <version>0.1.0</version> <!-- Проверьте актуальную версию! -->
-        </dependency>
 
         <!-- SLF4J API -->
         <dependency>
