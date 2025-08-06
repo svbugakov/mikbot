@@ -48,7 +48,7 @@ public class FriendsLip extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
 
             if (messageText.equals("/start")) {
-                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b /pic /task.".formatted(Group.getAssistantName(chatId)) +
+                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b /pic.".formatted(Group.getAssistantName(chatId)) +
                         " Для обращения к боту пишем в начале %s ".formatted(Group.getAssistantName(chatId)));
             } else if (messageText.equals("/pic")) {
                 // Путь к файлу (подставьте свой)
@@ -67,6 +67,7 @@ public class FriendsLip extends TelegramLongPollingBot {
                 }
                 sendMessage(chatId, response);
             } else if (messageText.startsWith("/b")) {
+                logger.debug("request b chat_id={}", chatId);
 
                 List<Person> persons = new ArrayList<>();
                 for (int date = 1; date <= 31; date++) {
@@ -75,7 +76,7 @@ public class FriendsLip extends TelegramLongPollingBot {
                     if (BirthDay.getBirthdayMap().containsKey(key)) {
                         persons.addAll(BirthDay.getBirthdayMap().get(key)
                                 .stream().filter(t -> t.status == Group.getStatus(chatId) ||
-                                        t.status == Status.admin).toList()); // из админской все доступно ??
+                                        chatId == Group.adminGroupID).toList()); // из админской все доступно ??
                     }
                 }
                 final StringBuilder response = new StringBuilder();
@@ -121,7 +122,7 @@ public class FriendsLip extends TelegramLongPollingBot {
     private void scheduleWithExecutor() {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
-        LocalTime targetTime = LocalTime.of(7, 10); // 8:00 утра
+        LocalTime targetTime = LocalTime.of(7, 10);
         long initialDelay = calculateInitialDelay(targetTime);
 
         executor.scheduleAtFixedRate(
@@ -131,7 +132,7 @@ public class FriendsLip extends TelegramLongPollingBot {
                 TimeUnit.SECONDS
         );
 
-        logger.info("Executor scheduler started. Next execution at {} AM", targetTime);
+        logger.info("Executor scheduler started. Next execution at {} AM, {}", targetTime, initialDelay);
     }
 
     // Метод для расчета начальной задержки

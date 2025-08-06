@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Copy the executable JAR file into the container
 COPY target/botsvb-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
+COPY ./pwd.txt /app/
 
 # (Optional) If your app uses external config files, uncomment:
 # COPY config/ ./config/
