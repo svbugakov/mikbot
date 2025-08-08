@@ -26,7 +26,7 @@ public class Group {
         groups.add(new Group(-4025066398l, Status.family, "Мика"));
         groups.add(new Group(adminGroupID , Status.admin, "Мика"));
         groups.add(new Group(-1001305919511l , Status.friend, "Друг"));
-
+        groups.add(new Group(1864502305l , Status.family, "Данила"));
     }
 
     public long getChatId() {

@@ -1,6 +1,7 @@
 package org.bot;
 
 import org.bot.ai.AIManager;
+import org.bot.gdrive.FileManagerGDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -11,24 +12,36 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.random.RandomGenerator;
+import java.util.stream.IntStream;
 
 public class FriendsLip extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(FriendsLip.class);
     private AIManager aiManager;
     private PwdKeeper pwdKeeper;
+    private FileManagerGDriver driver;
 
-    public FriendsLip(AIManager aiManager, PwdKeeper pwdKeeper) {
+    public FriendsLip(
+            AIManager aiManager,
+            PwdKeeper pwdKeeper,
+            FileManagerGDriver driver
+    ) {
         scheduleWithExecutor();
         this.aiManager = aiManager;
         this.pwdKeeper = pwdKeeper;
+        this.driver = driver;
     }
 
     @Override
@@ -48,12 +61,18 @@ public class FriendsLip extends TelegramLongPollingBot {
             long chatId = update.getMessage().getChatId();
 
             if (messageText.equals("/start")) {
-                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b /pic.".formatted(Group.getAssistantName(chatId)) +
+                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b.".formatted(Group.getAssistantName(chatId)) +
                         " Для обращения к боту пишем в начале %s ".formatted(Group.getAssistantName(chatId)));
-            } else if (messageText.equals("/pic")) {
-                // Путь к файлу (подставьте свой)
-                String imagePath = "D:\\share\\1.jpg"; // Для Windows
-                sendImage(chatId, imagePath);
+            } else if (messageText.startsWith("Мика") && messageText.contains("фото")) {
+                try {
+                    List<com.google.api.services.drive.model.File> gFiles = driver.getFiles();
+                    RandomGenerator generator = RandomGenerator.getDefault();
+                    int number = generator.nextInt(1, gFiles.size());
+                    com.google.api.services.drive.model.File gFile = gFiles.get(number);
+                    sendImage(chatId, gFile);
+                } catch (IOException e) {
+                    logger.error("error in getting file:", e);
+                }
             } else if (messageText.startsWith("Мика") || messageText.startsWith("Друг")) {
                 // Путь к файлу (подставьте свой)
                 messageText = messageText.replace("Мика", "");
@@ -106,16 +125,17 @@ public class FriendsLip extends TelegramLongPollingBot {
         }
     }
 
-    public void sendImage(long chatId, String imageUrl) {
+    public void sendImage(long chatId, com.google.api.services.drive.model.File gFile) throws IOException {
         SendPhoto photo = new SendPhoto();
         photo.setChatId(String.valueOf(chatId));
-        File image = new File(imageUrl);
-        photo.setPhoto(new InputFile(image)); // URL или File
-
+        InputStream inputStream = new ByteArrayInputStream(driver.downloadFileAsBytes(gFile.getId()));
+        InputFile inputFile = new InputFile();
+        inputFile.setMedia(inputStream, gFile.getName());// URL или File
+        photo.setPhoto(inputFile);
         try {
             execute(photo);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            logger.error("error in send image", e);
         }
     }
 
