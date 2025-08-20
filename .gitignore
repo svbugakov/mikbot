@@ -40,3 +40,5 @@ build/
 pwd.txt
 app.log
 .idea/
+gdrive.json
+Test.java

@@ -2,6 +2,8 @@ package org.bot;
 
 import org.bot.ai.AIManager;
 import org.bot.gdrive.FileManagerGDriver;
+import org.bot.handlers.HandlerMessage;
+import org.bot.handlers.ImageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -32,16 +34,19 @@ public class FriendsLip extends TelegramLongPollingBot {
     private AIManager aiManager;
     private PwdKeeper pwdKeeper;
     private FileManagerGDriver driver;
+    final List<HandlerMessage> handlerMessageList;
 
     public FriendsLip(
             AIManager aiManager,
             PwdKeeper pwdKeeper,
-            FileManagerGDriver driver
+            FileManagerGDriver driver,
+            final List<HandlerMessage> handlerMessageList
     ) {
         scheduleWithExecutor();
         this.aiManager = aiManager;
         this.pwdKeeper = pwdKeeper;
         this.driver = driver;
+        this.handlerMessageList = handlerMessageList;
     }
 
     @Override
@@ -60,55 +65,21 @@ public class FriendsLip extends TelegramLongPollingBot {
             String messageText = update.getMessage().getText();
             long chatId = update.getMessage().getChatId();
 
-            if (messageText.equals("/start")) {
-                sendMessage(chatId, "Привет! Я бот %s.\n команды: /start /b.".formatted(Group.getAssistantName(chatId)) +
-                        " Для обращения к боту пишем в начале %s ".formatted(Group.getAssistantName(chatId)));
-            } else if (messageText.startsWith("Мика") && messageText.contains("фото")) {
-                try {
-                    List<com.google.api.services.drive.model.File> gFiles = driver.getFiles();
-                    RandomGenerator generator = RandomGenerator.getDefault();
-                    int number = generator.nextInt(1, gFiles.size());
-                    com.google.api.services.drive.model.File gFile = gFiles.get(number);
-                    sendImage(chatId, gFile);
-                } catch (IOException e) {
-                    logger.error("error in getting file:", e);
+            for (HandlerMessage handlerMessage : handlerMessageList) {
+                if (!handlerMessage.isApply(messageText)) {
+                    continue;
                 }
-            } else if (messageText.startsWith("Мика") || messageText.startsWith("Друг")) {
-                // Путь к файлу (подставьте свой)
-                messageText = messageText.replace("Мика", "");
-                messageText = messageText.replace("Друг", "");
-                String response;
-                try {
-                    logger.debug("query: " + messageText);
-                    response = aiManager.getResponse(messageText);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                if (handlerMessage instanceof ImageHandler) {
+                    SendPhoto sendPhoto = handlerMessage.handlePhoto(messageText);
+                    sendImage(chatId, sendPhoto);
+                } else {
+                    final String result = handlerMessage.handle(messageText, chatId);
+                    sendMessage(chatId, result);
                 }
-                sendMessage(chatId, response);
-            } else if (messageText.startsWith("/b")) {
-                logger.debug("request b chat_id={}", chatId);
+                break;
+            }
 
-                List<Person> persons = new ArrayList<>();
-                for (int date = 1; date <= 31; date++) {
-                    int monthNumber = LocalDate.now().getMonthValue();
-                    String key = date + "_" + monthNumber;
-                    if (BirthDay.getBirthdayMap().containsKey(key)) {
-                        persons.addAll(BirthDay.getBirthdayMap().get(key)
-                                .stream().filter(t -> t.status == Group.getStatus(chatId) ||
-                                        chatId == Group.adminGroupID).toList()); // из админской все доступно ??
-                    }
-                }
-                final StringBuilder response = new StringBuilder();
-                response.append("В этом месяце :");
-                for (Person p : persons) {
-                    if (p.type == Type.birthday) {
-                        response.append("\nДень рождения у ").append(p.name).append(" ").append(p.datBorn);
-                    } else {
-                        response.append("\nГодовщина у ").append(p.name).append(" ").append(p.datBorn);
-                    }
-                }
-                sendMessage(chatId, response.toString());
-            } else if (messageText.startsWith("/task")) {
+            if (messageText.startsWith("/task")) {
                 executeDailyTask();
             }
         }
@@ -125,16 +96,11 @@ public class FriendsLip extends TelegramLongPollingBot {
         }
     }
 
-    public void sendImage(long chatId, com.google.api.services.drive.model.File gFile) throws IOException {
-        SendPhoto photo = new SendPhoto();
+    public void sendImage(long chatId, SendPhoto photo) {
         photo.setChatId(String.valueOf(chatId));
-        InputStream inputStream = new ByteArrayInputStream(driver.downloadFileAsBytes(gFile.getId()));
-        InputFile inputFile = new InputFile();
-        inputFile.setMedia(inputStream, gFile.getName());// URL или File
-        photo.setPhoto(inputFile);
         try {
             execute(photo);
-        } catch (TelegramApiException e) {
+        } catch (Exception e) {
             logger.error("error in send image", e);
         }
     }

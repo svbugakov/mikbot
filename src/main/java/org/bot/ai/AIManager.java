@@ -3,6 +3,7 @@ package org.bot.ai;
 
 import org.bot.PwdKeeper;
 import org.bot.ResponseAI;
+import org.bot.ai.function.AIFunctionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +16,10 @@ public class AIManager {
     private final List<AbstractAI> aiAgents = new ArrayList<>();
 
     public AIManager(PwdKeeper pwdKeeper) {
-        aiAgents.add(new DeepSeekWebClient(pwdKeeper.getPassword("deepseek")));
+        AIFunctionManager aiFunctionManager = new AIFunctionManager();
+        aiAgents.add(new Gpt4oMiniModelClient(pwdKeeper.getPassword("gpt4o"), aiFunctionManager));
         aiAgents.add(new Gpt4oMiniWebClient(pwdKeeper.getPassword("gpt4o")));
+        aiAgents.add(new DeepSeekWebClient(pwdKeeper.getPassword("deepseek")));
     }
 
     public String getResponse(String question) {
