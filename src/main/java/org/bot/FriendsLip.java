@@ -150,12 +150,7 @@ public class FriendsLip extends TelegramLongPollingBot {
             }
             String response;
             if (persons.isEmpty()) {
-                String messageReq = "Какой важный праздник или важное событие для русских людей на дату %s ? Отвечай кратко самое важное и значимое.".formatted(LocalDate.now().toString());
-                logger.debug("query_taskb: " + messageReq);
-                response = aiManager.getResponse(messageReq);
-                for (Group group : Group.getGroups()) {
-                    sendMessage(group.getChatId(), "Добрый день, сегодня  " + LocalDate.now() + "\n" + response);
-                }
+                logger.info("no happy events!");
             } else {
                 for (Person p : persons) {
                     final String desc;

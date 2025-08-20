@@ -3,6 +3,7 @@ package org.bot.ai;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.theokanning.openai.completion.chat.*;
 import com.theokanning.openai.service.OpenAiService;
+import org.apache.commons.lang3.StringUtils;
 import org.bot.ResponseAI;
 import org.bot.ai.function.AIFunction;
 import org.bot.ai.function.AIFunctionManager;
@@ -22,7 +23,7 @@ public class Gpt4oMiniModelClient extends AbstractGtp4oMini {
     private static final Logger logger = LoggerFactory.getLogger(Gpt4oMiniModelClient.class);
     final static int SERVER_ERROR = 500;
     final static int SERVER_OK = 200;
-    final static int MAX_MESSAGES = 200;
+    final static int MAX_MESSAGES = 250;
 
     private List<ChatMessage> baseMessages = new ArrayList<>();
     private List<AIFunction> aiFunctions = new ArrayList<>();
@@ -61,23 +62,38 @@ public class Gpt4oMiniModelClient extends AbstractGtp4oMini {
                 .functions(aiFunctions.stream().map(AIFunction::getFunc).toList())
                 .functionCall(ChatCompletionRequest.ChatCompletionRequestFunctionCall.of("auto"))
                 .build();
-
+        ChatMessage response;
         // 4. Отправляем запрос
-        ChatMessage response = service.createChatCompletion(request)
-                .getChoices().getFirst().getMessage();
+        try {
+            response = service.createChatCompletion(request)
+                    .getChoices().getFirst().getMessage();
+        } catch (com.theokanning.openai.OpenAiHttpException ex) {
+            logger.error("getResponse error: ", ex);
+            return new ResponseAI(StringUtils.EMPTY, ex.statusCode);
+        }
 
         allMessages.add(response);
         ChatFunctionCall chatFunctionCall = response.getFunctionCall();
-        if (chatFunctionCall != null) {
-            Optional<AIFunction> aiFunctionOpt = aiFunctions.stream()
-                    .filter(func -> chatFunctionCall.getName().equals(func.getName()))
-                    .findFirst();
-            if (aiFunctionOpt.isPresent()) {
-                return aiFuncLogic(chatFunctionCall, aiFunctionOpt.get(), response);
-            }
+        ResponseAI responseAI = new ResponseAI(response.getContent(), SERVER_OK);
+
+        if (chatFunctionCall == null) {
+            return responseAI;
+        }
+        Optional<AIFunction> aiFunctionOpt = aiFunctions.stream()
+                .filter(func -> chatFunctionCall.getName().equals(func.getName()))
+                .findFirst();
+        if (aiFunctionOpt.isEmpty()) {
+            throw new RuntimeException("Not found function %s".formatted(chatFunctionCall.getName()));
+        }
+        try {
+            responseAI =
+                    aiFuncLogic(chatFunctionCall, aiFunctionOpt.get(), response);
+        } catch (retrofit2.adapter.rxjava2.HttpException ex) {
+            logger.error("getResponse error: ", ex);
+            responseAI = new ResponseAI(StringUtils.EMPTY, ex.code());
         }
 
-        return new ResponseAI(response.getContent(), SERVER_OK);
+        return responseAI;
     }
 
     @Override
