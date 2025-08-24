@@ -72,6 +72,12 @@
             <version>0.14.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>chat.giga</groupId>
+            <artifactId>gigachat-java</artifactId>
+            <version>0.1.4</version>
+        </dependency>
+
     </dependencies>
 
     <packaging>jar</packaging>

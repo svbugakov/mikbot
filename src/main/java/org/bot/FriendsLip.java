@@ -1,9 +1,10 @@
 package org.bot;
 
 import org.bot.ai.AIManager;
+import org.bot.ai.QuestionGoal;
+import org.bot.ai.ResponseAI;
 import org.bot.gdrive.FileManagerGDriver;
 import org.bot.handlers.HandlerMessage;
-import org.bot.handlers.ImageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
@@ -15,18 +16,13 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.random.RandomGenerator;
-import java.util.stream.IntStream;
 
 public class FriendsLip extends TelegramLongPollingBot {
 
@@ -69,12 +65,11 @@ public class FriendsLip extends TelegramLongPollingBot {
                 if (!handlerMessage.isApply(messageText)) {
                     continue;
                 }
-                if (handlerMessage instanceof ImageHandler) {
-                    SendPhoto sendPhoto = handlerMessage.handlePhoto(messageText);
-                    sendImage(chatId, sendPhoto);
-                } else {
-                    final String result = handlerMessage.handle(messageText, chatId);
-                    sendMessage(chatId, result);
+                final ResponseAI result = handlerMessage.handle(messageText, chatId);
+                if (result.getQuestionGoal() == QuestionGoal.TEXT) {
+                    sendMessage(chatId, result.getResponse());
+                } else if (result.getQuestionGoal() == QuestionGoal.PICTURE) {
+                    sendImage(chatId, result.getResponseBytes());
                 }
                 break;
             }
@@ -96,7 +91,12 @@ public class FriendsLip extends TelegramLongPollingBot {
         }
     }
 
-    public void sendImage(long chatId, SendPhoto photo) {
+    public void sendImage(long chatId, byte[] bytes) {
+        SendPhoto photo = new SendPhoto();
+        InputStream inputStream = new ByteArrayInputStream(bytes);
+        InputFile inputFile = new InputFile();
+        inputFile.setMedia(inputStream, "best photo");// URL или File
+        photo.setPhoto(inputFile);
         photo.setChatId(String.valueOf(chatId));
         try {
             execute(photo);
@@ -148,7 +148,7 @@ public class FriendsLip extends TelegramLongPollingBot {
             if (BirthDay.getBirthdayMap().containsKey(key)) {
                 persons.addAll(BirthDay.getBirthdayMap().get(key));
             }
-            String response;
+            String textPresent;
             if (persons.isEmpty()) {
                 logger.info("no happy events!");
             } else {
@@ -161,16 +161,18 @@ public class FriendsLip extends TelegramLongPollingBot {
                     }
                     String messageReq = "Поздравь с %s %s.".formatted(desc, p.name);
                     logger.debug("query_task: " + messageReq);
-                    response = aiManager.getResponse(messageReq);
-                    if (response.isEmpty()) {
-                        response = messageReq + "Желаем здоровья и долгих лет жизни!";
+                    ResponseAI response = aiManager.getResponse(messageReq);
+                    if (response.getResponse().isEmpty()) {
+                        textPresent = messageReq + "Желаем здоровья и долгих лет жизни!";
+                    } else {
+                        textPresent = response.getResponse();
                     }
                     for (Group group : Group.getGroups()) {
                         if (group.getStatus() == p.status || p.status == Status.admin) {
-                            sendMessage(group.getChatId(), "Добрый день, сегодня  " + LocalDate.now() + "\n" + response);
+                            sendMessage(group.getChatId(), "Добрый день, сегодня  " + LocalDate.now() + "\n" + textPresent);
                         }
                     }
-                    sendMessage(Group.adminGroupID, "Добрый день, сегодня  " + LocalDate.now() + "\n" + response);
+                    sendMessage(Group.adminGroupID, "Добрый день, сегодня  " + LocalDate.now() + "\n" + textPresent);
                 }
             }
 

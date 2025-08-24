@@ -1,11 +1,9 @@
 package org.bot.handlers;
 
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.bot.ai.ResponseAI;
 
 public interface HandlerMessage {
-    String handle(String messageText, long chatId);
-
-    SendPhoto handlePhoto(String messageText);
+    ResponseAI handle(String messageText, long chatId);
 
     boolean isApply(String messageText);
 

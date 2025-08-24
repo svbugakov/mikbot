@@ -1,64 +1,50 @@
 package org.bot.ai;
 
-import org.apache.commons.lang3.StringUtils;
-import org.bot.ResponseAI;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.bot.ai.function.AIFunction;
+import org.bot.ai.function.meteosource.WeatherArgs;
+import org.bot.ai.function.meteosource.WeatherDay;
+import org.bot.ai.function.meteosource.WeatherPlace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.util.Map;
 
-public abstract class AbstractAI {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractAI.class);
+public interface AbstractAI {
+    Logger logger = LoggerFactory.getLogger(AbstractAI.class);
 
-    public abstract String getName();
+    String getName();
 
-    public abstract String getApiKey();
+    String getApiKey();
 
-    public abstract String getModel();
+    String getModel();
 
-    public abstract String getRequestModel();
+    String getRequestModel();
 
-    public abstract String getUri();
+    String getUri();
 
-    public ResponseAI getResponse(String question) {
-        String requestBody = getRequestModel().formatted(getModel(), question);
+    ResponseAI getResponse(Question question);
 
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(getUri()))
-                .timeout(Duration.ofSeconds(80))  // таймаут ожидания ответа
-                .header("Authorization", "Bearer " + getApiKey())
-                .header("Content-Type", "application/json")
-                .header("HTTP-Referer", "https://your-site.com") // Опционально (OpenRouter просит указать источник)
-                .header("X-Title", "My App") // Опционально
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
+    default String aiFuncLogic(
+            final Map<String, Object> jsonNode,
+            final AIFunction aiFunction
+    ) {
+        WeatherArgs weatherArgs = new WeatherArgs(
+                WeatherPlace.valueOf(jsonNode.get("location").toString()),
+                WeatherDay.valueOf(jsonNode.get("day").toString()),
+                Integer.parseInt(jsonNode.get("shift").toString())
+        );
 
-        HttpResponse<String> response = null;
+        String responseWeather = null;
         try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException | InterruptedException e) {
-            logger.error("send error: ", e);
-            return new ResponseAI(StringUtils.EMPTY, 501);
+            responseWeather = aiFunction.logic(
+                    weatherArgs
+            );
+        } catch (Exception e) {
+            logger.error("error in call aiFunction.logic", e);
+            throw new RuntimeException(e);
         }
-        if (response.statusCode() >= 200 && response.statusCode() < 300) {
-            JSONObject jsonResponse = new JSONObject(response.body());
-            JSONArray choices = jsonResponse.getJSONArray("choices");
-            String content = choices.getJSONObject(0)
-                    .getJSONObject("message")
-                    .getString("content");
 
-            return new ResponseAI(content, response.statusCode());
-        } else {
-            logger.error("code error: " + response.statusCode());
-        }
-        return new ResponseAI(StringUtils.EMPTY, response.statusCode());
+        return responseWeather;
     }
 }

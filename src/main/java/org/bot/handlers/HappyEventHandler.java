@@ -1,12 +1,10 @@
 package org.bot.handlers;
 
-import org.bot.BirthDay;
-import org.bot.Group;
-import org.bot.Person;
-import org.bot.Type;
+import org.bot.*;
+import org.bot.ai.ResponseAI;
+import org.bot.ai.StatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,7 +14,7 @@ public class HappyEventHandler implements HandlerMessage{
     private static final Logger logger = LoggerFactory.getLogger(HappyEventHandler.class);
 
     @Override
-    public String handle(String messageText, long chatId) {
+    public ResponseAI handle(String messageText, long chatId) {
         logger.debug("request b chat_id={}", chatId);
 
         List<Person> persons = new ArrayList<>();
@@ -38,12 +36,7 @@ public class HappyEventHandler implements HandlerMessage{
                 response.append("\nГодовщина у ").append(p.getName()).append(" ").append(p.getDatBorn());
             }
         }
-        return response.toString();
-    }
-
-    @Override
-    public SendPhoto handlePhoto(String messageText) {
-        throw new UnsupportedOperationException("not to use handlePhoto for AITextHandler");
+        return new ResponseAI(response.toString(), StatusResponse.SUCCESS);
     }
 
     @Override

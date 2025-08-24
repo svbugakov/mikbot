@@ -1,9 +1,10 @@
 package org.bot.ai;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeepSeekWebClient extends AbstractAI {
+public class DeepSeekWebClient extends AbstractWebAI {
 
     private static final Logger logger = LoggerFactory.getLogger(DeepSeekWebClient.class);
     private String apiKey;
