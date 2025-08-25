@@ -27,7 +27,7 @@ public class OpenAIWeatherFunction extends AbstractAIWeatherFunction<ChatFunctio
         return ChatFunction.builder()
                 .name(getName())
                 .description("Получить погоду на сегодня, завтра, послезавтра, на конкретный день недели или период в указанном месте")
-                .executor(WeatherArgs.class, this::logic)
+                .executor(WeatherArgs.class, this::logicFunc)
                 .build();
     }
 

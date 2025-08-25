@@ -1,16 +1,20 @@
 package org.bot.ai;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.bot.ai.function.AIFunction;
-import org.bot.ai.function.meteosource.WeatherArgs;
-import org.bot.ai.function.meteosource.WeatherDay;
-import org.bot.ai.function.meteosource.WeatherPlace;
+import org.apache.commons.lang3.StringUtils;
+import org.bot.ai.entity.Question;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.StatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-public interface AbstractAI {
+public interface AbstractAI<M> {
+    int MAX_MESSAGES = 10;
+
+
     Logger logger = LoggerFactory.getLogger(AbstractAI.class);
 
     String getName();
@@ -25,26 +29,11 @@ public interface AbstractAI {
 
     ResponseAI getResponse(Question question);
 
-    default String aiFuncLogic(
-            final Map<String, Object> jsonNode,
-            final AIFunction aiFunction
-    ) {
-        WeatherArgs weatherArgs = new WeatherArgs(
-                WeatherPlace.valueOf(jsonNode.get("location").toString()),
-                WeatherDay.valueOf(jsonNode.get("day").toString()),
-                Integer.parseInt(jsonNode.get("shift").toString())
-        );
+    List<M> getAllMessage();
 
-        String responseWeather = null;
-        try {
-            responseWeather = aiFunction.logic(
-                    weatherArgs
-            );
-        } catch (Exception e) {
-            logger.error("error in call aiFunction.logic", e);
-            throw new RuntimeException(e);
-        }
+    void setAllMessage(List<M> messNew);
 
-        return responseWeather;
-    }
+    void logicRecreationAllMessages();
+
+    ResponseAI tryNeedRedirect(Question question);
 }

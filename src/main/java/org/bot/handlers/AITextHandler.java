@@ -1,7 +1,9 @@
 package org.bot.handlers;
 
-import org.bot.ai.ResponseAI;
+import org.apache.commons.lang3.StringUtils;
+import org.bot.ai.entity.ResponseAI;
 import org.bot.ai.AIManager;
+import org.bot.ai.entity.StatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +26,8 @@ public class AITextHandler implements HandlerMessage{
             logger.debug("query: " + messageText);
             response = aiManager.getResponse(messageText);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            logger.error("error in  AITextHandler:" , e);
+            return new ResponseAI(StringUtils.EMPTY, StatusResponse.FAILED);
         }
         return response;
     }

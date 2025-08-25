@@ -19,24 +19,22 @@ public class GigaWeatherFunction extends AbstractAIWeatherFunction<ChatFunction,
 
     private static final Logger logger = LoggerFactory.getLogger(GigaWeatherFunction.class);
     private String goal;
+    private final List<ChatFunctionFewShotExample> shots;
 
     public GigaWeatherFunction(ApiOpenMeteo apiOpenMeteo) {
         super(apiOpenMeteo);
-    }
-
-    @Override
-    public ChatFunction getFunc() {
-        List<ChatFunctionFewShotExample> shots =
+        shots =
                 getTestMessages().stream()
                         .filter(gigaShot -> gigaShot.params() != null
                                 && !gigaShot.params().isEmpty())
                         .toList();
-
-
         if (StringUtils.isEmpty(goal)) {
             throw new IllegalStateException("not defined descr goal of GigaFunctionWeather!");
         }
+    }
 
+    @Override
+    public ChatFunction getFunc() {
         return ChatFunction.builder()
                 .name(getName())
                 .description(goal)

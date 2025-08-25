@@ -18,7 +18,7 @@ public class Botmain {
 
     private static final Logger logger = LoggerFactory.getLogger(Botmain.class);
 
-    public static void main(String[] args) throws TelegramApiException, IOException, GeneralSecurityException {
+    public static void main(String[] args) throws Exception {
         try {
             TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
             PwdKeeper pwdKeeper = new PwdKeeper();

@@ -1,4 +1,4 @@
-package org.bot.ai;
+package org.bot.ai.entity;
 
 public class SimpleQuestion implements Question {
     private String message;

@@ -2,14 +2,14 @@ package org.bot.ai.function.meteosource;
 
 public class WeatherArgs {
     public WeatherPlace location;
-    public WeatherDay type;
-    public int days;  // "today", "tomorrow", "2023-12-31", "next week"
+    public WeatherDay day;
+    public int shift;  // "today", "tomorrow", "2023-12-31", "next week"
 
 
-    public WeatherArgs(WeatherPlace location, WeatherDay type, int days) {
+    public WeatherArgs(WeatherPlace location, WeatherDay day, int shift) {
         this.location = location;
-        this.type = type;
-        this.days = days;
+        this.day = day;
+        this.shift = shift;
     }
 
     public WeatherArgs() {

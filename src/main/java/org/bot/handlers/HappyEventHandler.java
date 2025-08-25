@@ -1,8 +1,9 @@
 package org.bot.handlers;
 
 import org.bot.*;
-import org.bot.ai.ResponseAI;
-import org.bot.ai.StatusResponse;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.StatusResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +37,7 @@ public class HappyEventHandler implements HandlerMessage{
                 response.append("\nГодовщина у ").append(p.getName()).append(" ").append(p.getDatBorn());
             }
         }
-        return new ResponseAI(response.toString(), StatusResponse.SUCCESS);
+        return new ResponseAI(response.toString(), StatusResponse.SUCCESS, QuestionGoal.TEXT);
     }
 
     @Override

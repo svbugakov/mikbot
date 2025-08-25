@@ -2,9 +2,9 @@ package org.bot.handlers;
 
 import com.google.api.services.drive.model.File;
 import org.apache.commons.lang3.StringUtils;
-import org.bot.ai.ResponseAI;
-import org.bot.ai.QuestionGoal;
-import org.bot.ai.StatusResponse;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.StatusResponse;
 import org.bot.gdrive.FileManagerGDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

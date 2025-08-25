@@ -1,8 +1,8 @@
 package org.bot;
 
 import org.bot.ai.AIManager;
-import org.bot.ai.QuestionGoal;
-import org.bot.ai.ResponseAI;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.ResponseAI;
 import org.bot.gdrive.FileManagerGDriver;
 import org.bot.handlers.HandlerMessage;
 import org.slf4j.Logger;

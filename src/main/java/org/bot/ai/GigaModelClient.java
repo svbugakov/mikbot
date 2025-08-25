@@ -10,23 +10,23 @@ import chat.giga.model.Scope;
 
 
 import chat.giga.model.completion.*;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.commons.lang3.StringUtils;
+import org.bot.ai.entity.Question;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.StatusResponse;
 import org.bot.ai.function.AIFunction;
 import org.bot.ai.function.AIFunctionManager;
 import org.bot.ai.function.TypeAI;
 import org.bot.ai.function.giga.FuncParamGiga;
 import org.bot.ai.function.giga.GigaWeatherFunction;
-import org.bot.ai.function.meteosource.WeatherArgs;
-import org.bot.ai.function.meteosource.WeatherDay;
-import org.bot.ai.function.meteosource.WeatherPlace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 
-public class GigaModelClient implements AbstractAI {
+public class GigaModelClient extends AbstractAICommon<ChatMessage> {
     private static final Logger logger = LoggerFactory.getLogger(GigaModelClient.class);
 
     private List<AIFunction> aiFunctions = new ArrayList<>();
@@ -59,8 +59,9 @@ public class GigaModelClient implements AbstractAI {
 
     @Override
     public ResponseAI getResponse(Question question) {
-        // logicRecreationAllMessages();
+        logicRecreationAllMessages();
         if (question.getQuestionGoal() == QuestionGoal.PICTURE) {
+            allMessages.clear();
             allMessages.add(ChatMessage.builder()
                     .role(ChatMessage.Role.SYSTEM)
                     .content("Ты — художник")
@@ -72,15 +73,20 @@ public class GigaModelClient implements AbstractAI {
                 .role(ChatMessage.Role.USER)
                 .build());
 
+        List<ChatFunction> funcGiga = new ArrayList<>();
+        if (question.getQuestionGoal() == QuestionGoal.TEXT) {
+            funcGiga.addAll(new ArrayList<>(aiFunctions.stream()
+                    .filter(f -> f instanceof GigaWeatherFunction)
+                    .map(f -> (ChatFunction) f.getFunc()).toList()));
+        }
+
 
         CompletionResponse response;
         try {
             response = client.completions(CompletionRequest.builder()
                     .model(getModel())
                     .messages(allMessages)
-                    .functions(aiFunctions.stream()
-                            .filter(f -> f instanceof GigaWeatherFunction)
-                            .map(f -> (ChatFunction) f.getFunc()).toList())
+                    .functions(funcGiga)
                     .build());
         } catch (HttpClientException ex) {
             logger.error("getResponse error: ", ex);
@@ -95,7 +101,7 @@ public class GigaModelClient implements AbstractAI {
         if (question.getQuestionGoal() == QuestionGoal.PICTURE) {
             return handleImageQuestion(content);
         }
-        ResponseAI responseAI = new ResponseAI(content, StatusResponse.SUCCESS);
+        ResponseAI responseAI = new ResponseAI(content, StatusResponse.SUCCESS, QuestionGoal.TEXT);
         ChoiceMessageFunctionCall choiceMessageFunctionCall = message.functionCall();
         if (choiceMessageFunctionCall == null) {
             return responseAI;
@@ -116,8 +122,7 @@ public class GigaModelClient implements AbstractAI {
 
         final String responseWeather;
         try {
-
-            responseWeather = aiFuncLogic(choiceMessageFunctionCall.arguments(), aiFunction);
+            responseWeather = aiFunction.logic(choiceMessageFunctionCall.arguments());
         } catch (retrofit2.adapter.rxjava2.HttpException ex) {
             logger.error("getResponse error: ", ex);
             return new ResponseAI(StringUtils.EMPTY, StatusResponse.FAILED);
@@ -137,7 +142,7 @@ public class GigaModelClient implements AbstractAI {
 
         var messageRespFinish = response.choices().getFirst().message();
 
-        return new ResponseAI(messageRespFinish.content(), StatusResponse.SUCCESS);
+        return new ResponseAI(messageRespFinish.content(), StatusResponse.SUCCESS, QuestionGoal.TEXT);
     }
 
     @Override
@@ -165,6 +170,15 @@ public class GigaModelClient implements AbstractAI {
         throw new UnsupportedOperationException("not to use getUri for GigaModelClient");
     }
 
+    @Override
+    public List<ChatMessage> getAllMessage() {
+        return allMessages;
+    }
+
+    public void setAllMessage(List<ChatMessage> messNew) {
+        allMessages.addAll(messNew);
+    }
+
     private ResponseAI handleImageQuestion(String content) {
         if (content == null || !content.contains("img src=")) {
             throw new RuntimeException("no img on answer GigaChat!");
@@ -174,7 +188,7 @@ public class GigaModelClient implements AbstractAI {
         logger.info(client.getFileInfo(fileId).toString());
 
         byte[] bytes = client.downloadFile(fileId, null);
-        ResponseAI responseAI = new ResponseAI(bytes, StatusResponse.SUCCESS);
+        ResponseAI responseAI = new ResponseAI(bytes, StatusResponse.SUCCESS, QuestionGoal.PICTURE);
         client.deleteFile(fileId);
         return responseAI;
     }

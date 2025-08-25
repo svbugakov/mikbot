@@ -1,4 +1,4 @@
-package org.bot.ai;
+package org.bot.ai.entity;
 
 public class ResponseAI {
     private String response;
@@ -10,6 +10,18 @@ public class ResponseAI {
     public ResponseAI(String response, StatusResponse status) {
         this.response = response;
         this.status = status;
+    }
+
+    public ResponseAI(String response, StatusResponse status, QuestionGoal questionGoal) {
+        this.response = response;
+        this.status = status;
+        this.questionGoal = questionGoal;
+    }
+
+    public ResponseAI(byte[] responseBytes, StatusResponse status, QuestionGoal questionGoal) {
+        this.responseBytes = responseBytes;
+        this.status = status;
+        this.questionGoal = questionGoal;
     }
 
     public ResponseAI(byte[] responseBytes, StatusResponse status) {

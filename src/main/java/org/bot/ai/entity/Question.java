@@ -1,4 +1,4 @@
-package org.bot.ai;
+package org.bot.ai.entity;
 
 public interface Question {
     String getMessage();

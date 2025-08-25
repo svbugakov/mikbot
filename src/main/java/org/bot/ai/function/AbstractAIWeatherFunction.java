@@ -1,9 +1,5 @@
 package org.bot.ai.function;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.theokanning.openai.completion.chat.*;
-import org.bot.ai.ResponseAI;
-import org.bot.ai.StatusResponse;
 import org.bot.ai.function.meteosource.ApiOpenMeteo;
 import org.bot.ai.function.meteosource.WeatherArgs;
 import org.bot.ai.function.meteosource.WeatherDay;
@@ -18,6 +14,8 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
 
 public abstract class AbstractAIWeatherFunction<T, M, F> implements AIFunction<T, M, F> {
     private static final Logger logger = LoggerFactory.getLogger(AbstractAIWeatherFunction.class);
@@ -84,12 +82,28 @@ public abstract class AbstractAIWeatherFunction<T, M, F> implements AIFunction<T
     }
 
     @Override
-    public String logic(WeatherArgs weatherArgs) {
+    public String logic(final Map<String, Object> args) {
+        String location = args.get("location").toString();
+        WeatherPlace locationPlace;
+        if(containsRussian(location)) {
+             locationPlace = WeatherPlace.fromLocation(location);
+        } else {
+            locationPlace = WeatherPlace.valueOf(args.get("location").toString());
+        }
+        WeatherArgs weatherArgs = new WeatherArgs(
+                locationPlace,
+                WeatherDay.valueOf(args.get("day").toString()),
+                Integer.parseInt(args.get("shift").toString())
+        );
+        return logicFunc(weatherArgs);
+    }
+
+    public String logicFunc(final WeatherArgs weatherArgs) {
         LocalDate currentDate = LocalDate.now();
         LocalDate futureDate = null;
 
         // Добавляем n дней
-        WeatherDay weatherDay = weatherArgs.type;
+        WeatherDay weatherDay = weatherArgs.day;
         if (WeatherDay.daysOfWeek.contains(weatherDay)) {
             DayOfWeek targetDay = DayOfWeek.valueOf(weatherDay.name().toUpperCase());
             futureDate = currentDate.with(TemporalAdjusters.nextOrSame(targetDay));
@@ -98,7 +112,7 @@ public abstract class AbstractAIWeatherFunction<T, M, F> implements AIFunction<T
             futureDate = currentDate.plusDays(weatherDay.getDay());
             currentDate = futureDate;
         } else if (weatherDay == WeatherDay.PERIOD) {
-            futureDate = currentDate.plusDays(weatherArgs.days);
+            futureDate = currentDate.plusDays(weatherArgs.shift);
         } else {
             throw new IllegalArgumentException("Unknow WeatherDay!" + weatherDay.name());
         }
@@ -135,4 +149,8 @@ public abstract class AbstractAIWeatherFunction<T, M, F> implements AIFunction<T
     public abstract M getInstance(String role, F func, String numExample);
 
     public abstract F getInstanceFunc(String name, WeatherPlace place, WeatherDay weatherDay, int days);
+
+    private static boolean containsRussian(String text) {
+        return Pattern.compile("[а-яА-ЯёЁ]").matcher(text).find();
+    }
 }

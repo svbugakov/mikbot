@@ -14,6 +14,7 @@ import org.bot.ai.function.meteosource.WeatherPlace;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public interface AIFunction<T, M, F> {
@@ -25,7 +26,7 @@ public interface AIFunction<T, M, F> {
 
     String getName();
 
-    String logic(final WeatherArgs weatherArgs);
+    String logic( final Map<String, Object> args);
 
     default boolean isApply(String name) {
         return getName().equals(name);

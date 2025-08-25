@@ -4,22 +4,23 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.theokanning.openai.completion.chat.*;
 import com.theokanning.openai.service.OpenAiService;
 import org.apache.commons.lang3.StringUtils;
+import org.bot.ai.entity.Question;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.StatusResponse;
 import org.bot.ai.function.AIFunction;
 import org.bot.ai.function.AIFunctionManager;
 import org.bot.ai.function.TypeAI;
-import org.bot.ai.function.meteosource.WeatherArgs;
-import org.bot.ai.function.meteosource.WeatherDay;
-import org.bot.ai.function.meteosource.WeatherPlace;
 import org.bot.ai.function.openai.OpenAIWeatherFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class Gpt4oMiniModelClient implements AbstractAI {
+public class Gpt4oMiniModelClient extends AbstractAICommon<ChatMessage> {
 
     private static final Logger logger = LoggerFactory.getLogger(Gpt4oMiniModelClient.class);
-    final static int MAX_MESSAGES = 250;
+    public static final String NAME_AI = "gpt-4o-mini-model";
 
     private List<ChatMessage> baseMessages = new ArrayList<>();
     private List<AIFunction> aiFunctions = new ArrayList<>();
@@ -45,6 +46,11 @@ public class Gpt4oMiniModelClient implements AbstractAI {
 
     @Override
     public ResponseAI getResponse(Question question) {
+        final ResponseAI responseAIR = tryNeedRedirect(question);
+        if (responseAIR.getRedirectAiName() != null) {
+            logger.info("redirect question:{}", question.getMessage());
+            return responseAIR;
+        }
         logicRecreationAllMessages();
 
         ChatMessage userMessage = new ChatMessage(
@@ -72,7 +78,7 @@ public class Gpt4oMiniModelClient implements AbstractAI {
 
         allMessages.add(response);
         ChatFunctionCall chatFunctionCall = response.getFunctionCall();
-        ResponseAI responseAI = new ResponseAI(response.getContent(), StatusResponse.SUCCESS);
+        ResponseAI responseAI = new ResponseAI(response.getContent(), StatusResponse.SUCCESS, QuestionGoal.TEXT);
 
         if (chatFunctionCall == null) {
             return responseAI;
@@ -88,11 +94,14 @@ public class Gpt4oMiniModelClient implements AbstractAI {
         try {
             JsonNode jsonNode = chatFunctionCall.getArguments();
             Map<String, Object> mArgs = new HashMap<>();
-            mArgs.put("location", jsonNode.get("location").textValue());
-            mArgs.put("day", jsonNode.get("type").asText());
-            mArgs.put("shift", jsonNode.get("days").asText());
+            Iterator<String> fieldNames = jsonNode.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                mArgs.put(fieldName, jsonNode.get(fieldName).asText());
+            }
+
             responseWeather =
-                    aiFuncLogic(mArgs, aiFunctionOpt.get());
+                    aiFunctionOpt.get().logic(mArgs);
         } catch (retrofit2.adapter.rxjava2.HttpException ex) {
             logger.error("getResponse error: ", ex);
             return new ResponseAI(StringUtils.EMPTY, StatusResponse.FAILED);
@@ -106,7 +115,7 @@ public class Gpt4oMiniModelClient implements AbstractAI {
         allMessages.add(functionResponse);
 
         ChatCompletionRequest followUp = ChatCompletionRequest.builder()
-                .model("gpt-4o-mini")
+                .model(getModel())
                 .messages(allMessages)
                 .functions(List.of((ChatFunction) aiFunctionOpt.get().getFunc()))
                 .functionCall(ChatCompletionRequest.ChatCompletionRequestFunctionCall.of("auto"))
@@ -119,12 +128,12 @@ public class Gpt4oMiniModelClient implements AbstractAI {
 
         allMessages.add(finMessage);
 
-        return new ResponseAI(finMessage.getContent(), StatusResponse.SUCCESS);
+        return new ResponseAI(finMessage.getContent(), StatusResponse.SUCCESS, QuestionGoal.TEXT);
     }
 
     @Override
     public String getName() {
-        return "gpt-4o-mini-model";
+        return NAME_AI;
     }
 
     @Override
@@ -149,19 +158,5 @@ public class Gpt4oMiniModelClient implements AbstractAI {
 
 
 
-    private void logicRecreationAllMessages() {
-        if (allMessages.size() > MAX_MESSAGES) {
-            synchronized (this) {
-                if (allMessages.size() > MAX_MESSAGES) {
-                    logger.info("recreation messages in chat...");
-                    List<ChatMessage> newMessages = new ArrayList<>(baseMessages);
-                    newMessages.addAll(allMessages.subList(
-                            Math.max(0, allMessages.size() - 10),
-                            allMessages.size()
-                    ));
-                    allMessages = newMessages;
-                }
-            }
-        }
-    }
+
 }

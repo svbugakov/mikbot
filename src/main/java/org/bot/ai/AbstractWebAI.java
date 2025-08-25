@@ -1,6 +1,10 @@
 package org.bot.ai;
 
 import org.apache.commons.lang3.StringUtils;
+import org.bot.ai.entity.Question;
+import org.bot.ai.entity.QuestionGoal;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.StatusResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -12,7 +16,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-public abstract class AbstractWebAI implements AbstractAI {
+public abstract class AbstractWebAI extends AbstractAICommon {
     @Override
     public ResponseAI getResponse(Question question) {
         final ResponseAI responseAIR = tryNeedRedirect(question);
@@ -59,16 +63,4 @@ public abstract class AbstractWebAI implements AbstractAI {
         }
         return new ResponseAI(StringUtils.EMPTY, StatusResponse.FAILED);
     }
-
-
-    ResponseAI tryNeedRedirect(Question question) {
-        final String messageUp = question.getMessage().toUpperCase();
-        if (messageUp.contains("ПОГОД") || messageUp.contains("ПРОГНОЗ")) {
-            return new ResponseAI(question.getMessage(), StatusResponse.SUCCESS,
-                    null, "gpt-4o-mini-model", QuestionGoal.TEXT);
-        }
-        return new ResponseAI(StringUtils.EMPTY, StatusResponse.SUCCESS);
-    }
-
-
 }
