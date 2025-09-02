@@ -3,40 +3,46 @@ package org.bot;
 import org.bot.ai.AIManager;
 import org.bot.ai.entity.QuestionGoal;
 import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.SimpleQuestion;
 import org.bot.gdrive.FileManagerGDriver;
 import org.bot.handlers.HandlerMessage;
+import org.bot.handlers.TypeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
-
+import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.time.*;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class FriendsLip extends TelegramLongPollingBot {
+public class FriendsLip<T> extends TelegramLongPollingBot {
 
     private static final Logger logger = LoggerFactory.getLogger(FriendsLip.class);
     private AIManager aiManager;
     private PwdKeeper pwdKeeper;
     private FileManagerGDriver driver;
-    final List<HandlerMessage> handlerMessageList;
+    final List<HandlerMessage<T>> handlerMessageList;
 
     public FriendsLip(
             AIManager aiManager,
             PwdKeeper pwdKeeper,
             FileManagerGDriver driver,
-            final List<HandlerMessage> handlerMessageList
+            final List<HandlerMessage<T>> handlerMessageList
     ) {
         scheduleWithExecutor();
         this.aiManager = aiManager;
@@ -57,15 +63,23 @@ public class FriendsLip extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
-            String messageText = update.getMessage().getText();
+        if (update.hasMessage()) {
+            final TypeMessage typeMessage = getTypeMessage(update.getMessage());
+            T message = getContent(update.getMessage(), typeMessage);
             long chatId = update.getMessage().getChatId();
+            Chat chat = update.getMessage().getChat();
 
-            for (HandlerMessage handlerMessage : handlerMessageList) {
-                if (!handlerMessage.isApply(messageText)) {
+
+            for (HandlerMessage<T> handlerMessage : handlerMessageList) {
+                if (!handlerMessage.isApplyType(typeMessage) || !handlerMessage.isApply(message)) {
                     continue;
                 }
-                final ResponseAI result = handlerMessage.handle(messageText, chatId);
+                final ResponseAI result = handlerMessage.handle(
+                        message,
+                        chat,
+                        update.getMessage().getMessageId()
+                );
+
                 if (result.getQuestionGoal() == QuestionGoal.TEXT) {
                     sendMessage(chatId, result.getResponse());
                 } else if (result.getQuestionGoal() == QuestionGoal.PICTURE) {
@@ -74,7 +88,7 @@ public class FriendsLip extends TelegramLongPollingBot {
                 break;
             }
 
-            if (messageText.startsWith("/task")) {
+            if (typeMessage == TypeMessage.TEXT && ((String) message).startsWith("/task")) {
                 executeDailyTask();
             }
         }
@@ -161,7 +175,8 @@ public class FriendsLip extends TelegramLongPollingBot {
                     }
                     String messageReq = "Поздравь с %s %s.".formatted(desc, p.name);
                     logger.debug("query_task: " + messageReq);
-                    ResponseAI response = aiManager.getResponse(messageReq);
+                    SimpleQuestion questionGoal = new SimpleQuestion(messageReq, QuestionGoal.TEXT);
+                    ResponseAI response = aiManager.getResponse(questionGoal);
                     if (response.getResponse().isEmpty()) {
                         textPresent = messageReq + "Желаем здоровья и долгих лет жизни!";
                     } else {
@@ -179,6 +194,27 @@ public class FriendsLip extends TelegramLongPollingBot {
 
         } catch (Exception e) {
             logger.error("Error in daily task: " + e.getMessage());
+        }
+    }
+
+    private TypeMessage getTypeMessage(Message message) {
+        if (message.hasPhoto()) {
+            return TypeMessage.IMAGE;
+        } else if (message.hasVoice()) {
+            return TypeMessage.AUDIO;
+        } else {
+            return TypeMessage.TEXT;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private T getContent(Message message, TypeMessage typeMessage) {
+        if (typeMessage == TypeMessage.TEXT) {
+            return (T) message.getText();
+        } else if (typeMessage == TypeMessage.IMAGE) {
+            return (T) message.getPhoto();
+        } else {
+            return (T) message.getVoice();
         }
     }
 

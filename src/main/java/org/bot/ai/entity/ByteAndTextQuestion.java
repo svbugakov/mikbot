@@ -1,12 +1,14 @@
 package org.bot.ai.entity;
 
-public class SimpleQuestion implements Question {
+public class ByteAndTextQuestion implements Question {
     private String message;
     private QuestionGoal questionGoal;
+    private byte[] bytes;
 
-    public SimpleQuestion(String message, QuestionGoal questionGoal) {
+    public ByteAndTextQuestion(String message, QuestionGoal questionGoal, byte[] bytes) {
         this.message = message;
         this.questionGoal = questionGoal;
+        this.bytes = bytes;
     }
 
     @Override
@@ -21,6 +23,6 @@ public class SimpleQuestion implements Question {
 
     @Override
     public byte[] getBytes() {
-        throw new UnsupportedOperationException("get bytes not allow for SimpleQuestion");
+        return this.bytes;
     }
 }

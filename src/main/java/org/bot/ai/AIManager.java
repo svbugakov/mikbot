@@ -2,10 +2,8 @@ package org.bot.ai;
 
 
 import org.bot.PwdKeeper;
-import org.bot.ai.entity.QuestionGoal;
-import org.bot.ai.entity.ResponseAI;
-import org.bot.ai.entity.SimpleQuestion;
-import org.bot.ai.entity.StatusResponse;
+import org.bot.SslContextKeeper;
+import org.bot.ai.entity.*;
 import org.bot.ai.function.AIFunctionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,17 +18,17 @@ public class AIManager {
     private final List<AbstractAI> aiAgents = new ArrayList<>();
     final String ERROR_RESP = "Собачка отдыхает, потом спросите.";
 
-    public AIManager(PwdKeeper pwdKeeper) {
+    public AIManager(PwdKeeper pwdKeeper, SslContextKeeper sslContextKeeper) {
         AIFunctionManager aiFunctionManager = new AIFunctionManager();
         aiAgents.add(new DeepSeekWebClient(pwdKeeper.getPassword("deepseek")));
         aiAgents.add(new Gpt4oMiniModelClient(pwdKeeper.getPassword("gpt4o"), aiFunctionManager));
         aiAgents.add(new GigaModelClient(pwdKeeper.getPassword("giga"), aiFunctionManager));
+        aiAgents.add(new SttWebAI("https://5.129.220.87:443/asr", sslContextKeeper));
     }
 
-    public ResponseAI getResponse(String question) {
-        SimpleQuestion questionGoal = new SimpleQuestion(question, QuestionGoal.TEXT);
+    public ResponseAI getResponse(Question question) {
         for (AbstractAI agent : aiAgents) {
-            ResponseAI responseAI = agent.getResponse(questionGoal);
+            ResponseAI responseAI = agent.getResponse(question);
             if (responseAI.getStatus() == StatusResponse.FAILED) {
                 logger.warn("AI {} failed", agent.getName());
                 continue;
@@ -40,8 +38,7 @@ public class AIManager {
                 return responseAI;
             }
             //redirect ai agent
-            SimpleQuestion questionGoalR = new SimpleQuestion(question, responseAI.getQuestionGoal());
-            ResponseAI responseAIR = findAgentByName(responseAI.getRedirectAiName()).getResponse(questionGoalR);
+            ResponseAI responseAIR = findAgentByName(responseAI.getRedirectAiName()).getResponse(question);
             if (responseAIR.getStatus() == StatusResponse.SUCCESS) {
                 logger.warn("AI redirect {} success", agent.getName());
                 return responseAIR;

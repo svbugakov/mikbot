@@ -70,7 +70,7 @@ public class PwdKeeper {
     private static final String SECRET_KEY_ALGORITHM = "PBKDF2WithHmacSHA256";
     private static final int KEY_SIZE = 256;
     private static final int ITERATION_COUNT = 65536;
-    private static final String MASTER_PASSWORD = "superSaulGoodman";
+    private static final String MASTER_PASSWORD = "xxx";
 
     public String encrypt(String password) throws Exception {
         SecretKey secretKey = generateSecretKey(MASTER_PASSWORD);
@@ -96,7 +96,7 @@ public class PwdKeeper {
 
     // Генерация ключа из мастер-пароля
     private SecretKey generateSecretKey(String masterPassword) throws Exception {
-        byte[] salt = "saul_goodman".getBytes(); // В реальности используйте уникальную соль
+        byte[] salt = "xxx".getBytes(); // В реальности используйте уникальную соль
 
         SecretKeyFactory factory = SecretKeyFactory.getInstance(SECRET_KEY_ALGORITHM);
         KeySpec spec = new PBEKeySpec(masterPassword.toCharArray(), salt, ITERATION_COUNT, KEY_SIZE);

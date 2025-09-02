@@ -1,52 +1,85 @@
 package org.bot.handlers;
 
-import com.google.api.services.drive.model.File;
-import org.apache.commons.lang3.StringUtils;
-import org.bot.ai.entity.ResponseAI;
+import org.bot.FriendsLip;
+import org.bot.ai.AIManager;
+import org.bot.ai.entity.ByteAndTextQuestion;
 import org.bot.ai.entity.QuestionGoal;
-import org.bot.ai.entity.StatusResponse;
-import org.bot.gdrive.FileManagerGDriver;
+import org.bot.ai.entity.ResponseAI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.methods.GetFile;
+import org.telegram.telegrambots.meta.api.objects.Chat;
+import org.telegram.telegrambots.meta.api.objects.File;
+import org.telegram.telegrambots.meta.api.objects.PhotoSize;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 
-public class ImageHandler implements HandlerMessage {
-    private static final Logger logger = LoggerFactory.getLogger(ImageHandler.class);
+public class ImageHandler implements HandlerMessage<List<PhotoSize>> {
+    private static final Logger logger = LoggerFactory.getLogger(FriendsLip.class);
+    private final TelegramLongPollingBot telegramLongPollingBot;
+    private final String token;
+    private final AIManager aiManager;
 
-    private FileManagerGDriver driver;
-
-    public ImageHandler(FileManagerGDriver driver) {
-        this.driver = driver;
+    public ImageHandler(TelegramLongPollingBot telegramLongPollingBot, String token, AIManager aiManager) {
+        this.telegramLongPollingBot = telegramLongPollingBot;
+        this.token = token;
+        this.aiManager = aiManager;
     }
 
     @Override
-    public ResponseAI handle(String messageText, long chatId) {
-        ResponseAI responseAI;
-        try {
-            List<File> gFiles = driver.getFiles();
-            Random random = new Random();
-            int number = random.nextInt(gFiles.size());
-            com.google.api.services.drive.model.File gFile = gFiles.get(number);
-
-            responseAI = new ResponseAI(
-                    StringUtils.EMPTY,
-                    StatusResponse.SUCCESS,
-                    driver.downloadFileAsBytes(gFile.getId()),
-                    null,
-                    QuestionGoal.PICTURE
-            );
-        } catch (IOException e) {
-            logger.error("error in getting file:", e);
-            return new ResponseAI(StringUtils.EMPTY, StatusResponse.FAILED);
-        }
+    public ResponseAI handle(List<PhotoSize> message, Chat chat, int messageId) {
+        byte[] bytes = getImage(message);
+        ByteAndTextQuestion questionGoal =
+                new ByteAndTextQuestion(
+                        "Вытащи весь текс и цифры из фото",
+                        QuestionGoal.BYTE_TEXT,
+                        bytes
+                );
+        ResponseAI responseAI = aiManager.getResponse(questionGoal);
         return responseAI;
     }
 
     @Override
-    public boolean isApply(String messageText) {
-        return (messageText.startsWith("Мика") || messageText.startsWith("Друг")) && messageText.contains("фото");
+    public boolean isApply(List<PhotoSize> messageText) {
+        return false;
+    }
+
+    @Override
+    public TypeMessage getType() {
+        return TypeMessage.IMAGE;
+    }
+
+    private byte[] getImage(List<PhotoSize> photos) {
+        // Получаем фото с наибольшим разрешением (последнее в списке)
+        PhotoSize fistPhoto = photos.stream()
+                .max(Comparator.comparing(PhotoSize::getFileSize))
+                .orElseThrow(() -> new RuntimeException("No photos found"));
+
+        // Получаем информацию о файле
+        String fileId = fistPhoto.getFileId();
+        GetFile getFile = new GetFile();
+        getFile.setFileId(fileId);
+        byte[] bytes = null;
+        try {
+            File file = telegramLongPollingBot.execute(getFile);
+            bytes = downloadFileBytes(file);
+        } catch (Exception e) {
+            logger.error("error in getting image", e);
+        }
+        return bytes;
+    }
+
+    // Метод для скачивания файла в byte[]
+    private byte[] downloadFileBytes(File file) throws IOException {
+        String fileUrl = "https://api.telegram.org/file/bot" + token + "/" + file.getFilePath();
+
+        try (InputStream in = new URL(fileUrl).openStream()) {
+            return in.readAllBytes();
+        }
     }
 }

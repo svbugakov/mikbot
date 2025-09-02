@@ -34,6 +34,9 @@ public abstract class AbstractAICommon<M> implements AbstractAI<M> {
         } else if (messageUp.contains("РИСУ") || messageUp.contains("КАРТИН")) {
             return new ResponseAI(question.getMessage(), StatusResponse.SUCCESS,
                     null, "giga", QuestionGoal.PICTURE);
+        } else if (question.getQuestionGoal() == QuestionGoal.AUDIO) {
+            return new ResponseAI(question.getMessage(), StatusResponse.SUCCESS,
+                    null, "SttWebAI", QuestionGoal.AUDIO);
         }
         return new ResponseAI(StringUtils.EMPTY, StatusResponse.SUCCESS);
     }

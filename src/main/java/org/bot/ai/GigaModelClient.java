@@ -3,12 +3,9 @@ package org.bot.ai;
 import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.client.auth.AuthClientBuilder;
-
 import chat.giga.http.client.HttpClientException;
 import chat.giga.model.ModelName;
 import chat.giga.model.Scope;
-
-
 import chat.giga.model.completion.*;
 import org.apache.commons.lang3.StringUtils;
 import org.bot.ai.entity.Question;
@@ -23,7 +20,9 @@ import org.bot.ai.function.giga.GigaWeatherFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 
 public class GigaModelClient extends AbstractAICommon<ChatMessage> {

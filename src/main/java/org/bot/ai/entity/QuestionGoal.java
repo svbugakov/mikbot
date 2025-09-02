@@ -2,5 +2,7 @@ package org.bot.ai.entity;
 
 public enum QuestionGoal {
     TEXT,
-    PICTURE
+    PICTURE,
+    BYTE_TEXT,
+    AUDIO
 }
