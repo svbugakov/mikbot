@@ -68,7 +68,9 @@ public class FriendsLip<T> extends TelegramLongPollingBot {
             T message = getContent(update.getMessage(), typeMessage);
             long chatId = update.getMessage().getChatId();
             Chat chat = update.getMessage().getChat();
-
+            if(chat.getUserName() == null) {
+                chat.setUserName(update.getMessage().getFrom().getUserName());
+            }
 
             for (HandlerMessage<T> handlerMessage : handlerMessageList) {
                 if (!handlerMessage.isApplyType(typeMessage) || !handlerMessage.isApply(message)) {

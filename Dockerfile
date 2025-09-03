@@ -9,6 +9,9 @@ COPY target/botsvb-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
 COPY ./pwd.txt /app/
 COPY ./gdrive.json /app/
 
+COPY ./client_new_ca.jks /app/
+COPY ./client_new_key.jks /app/
+
 # (Optional) If your app uses external config files, uncomment:
 # COPY config/ ./config/
 
