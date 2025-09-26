@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: mik-postgres
+    environment:
+      POSTGRES_DB: mik
+      POSTGRES_USER: xxx
+      POSTGRES_PASSWORD: xxx
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+      - ./ssl:/tmp/ssl:ro  # Монтируем папку ssl в /tmp/ssl
+    command: |
+      bash -c "
+        # Создаем папку для SSL
+        mkdir -p /etc/postgresql/ssl
+      
+        # Копируем файлы с хоста
+        if [ -f /tmp/ssl/server.key ] && [ -f /tmp/ssl/server.crt ]; then
+          cp /tmp/ssl/server.key /etc/postgresql/ssl/
+          cp /tmp/ssl/server.crt /etc/postgresql/ssl/
+          cp /tmp/ssl/ca.crt /etc/postgresql/ssl/
+          echo 'SSL файлы скопированы'
+        else
+          echo 'нет SSL сертификатов...'
+      
+        fi
+      
+        # Устанавливаем правильные права
+        chmod 600 /etc/postgresql/ssl/server.key
+        chmod 644 /etc/postgresql/ssl/server.crt
+        chmod 644 /etc/postgresql/ssl/ca.crt
+        chown postgres:postgres /etc/postgresql/ssl/server.key
+      
+      
+       # Запускаем PostgreSQL с SSL параметрами
+       # exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/etc/postgresql/ssl/server.crt -c ssl_key_file=/etc/postgresql/ssl/server.key
+        exec docker-entrypoint.sh postgres \
+          -c ssl=on \
+          -c ssl_cert_file=/etc/postgresql/ssl/server.crt \
+          -c ssl_key_file=/etc/postgresql/ssl/server.key \
+          -c ssl_ca_file=/etc/postgresql/ssl/ca.crt \
+          -c ssl_min_protocol_version=TLSv1.3
+      "
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

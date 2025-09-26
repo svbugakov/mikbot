@@ -57,7 +57,7 @@ public abstract class AbstractWebAI extends AbstractAICommon {
                 logger.error("error in get choices", e);
                 return new ResponseAI(StringUtils.EMPTY, StatusResponse.FAILED);
             }
-            return new ResponseAI(content, StatusResponse.SUCCESS);
+            return new ResponseAI(content, StatusResponse.SUCCESS, QuestionGoal.TEXT);
         } else {
             logger.error("code error: " + response.statusCode());
         }

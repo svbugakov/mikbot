@@ -1,4 +1,4 @@
-package org.bot.gdrive;
+package org.bot.google;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
@@ -8,7 +8,6 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.auth.http.HttpCredentialsAdapter;
 import com.google.auth.oauth2.GoogleCredentials;
-import org.bot.FriendsLip;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

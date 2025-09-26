@@ -1,7 +1,7 @@
 package org.bot;
 
 import org.bot.ai.AIManager;
-import org.bot.gdrive.FileManagerGDriver;
+import org.bot.google.FileManagerGDriver;
 import org.bot.handlers.*;
 import org.telegram.telegrambots.meta.TelegramBotsApi;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;

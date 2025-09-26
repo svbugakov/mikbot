@@ -3,8 +3,11 @@ package org.bot.ai;
 
 import org.bot.PwdKeeper;
 import org.bot.SslContextKeeper;
-import org.bot.ai.entity.*;
+import org.bot.ai.entity.Question;
+import org.bot.ai.entity.ResponseAI;
+import org.bot.ai.entity.StatusResponse;
 import org.bot.ai.function.AIFunctionManager;
+import org.bot.rag.SimpleVectorDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +20,7 @@ public class AIManager {
 
     private final List<AbstractAI> aiAgents = new ArrayList<>();
     final String ERROR_RESP = "Собачка отдыхает, потом спросите.";
+    private final RagModelClient gigaRagModelClient;
 
     public AIManager(PwdKeeper pwdKeeper, SslContextKeeper sslContextKeeper) {
         AIFunctionManager aiFunctionManager = new AIFunctionManager();
@@ -24,11 +28,16 @@ public class AIManager {
         aiAgents.add(new Gpt4oMiniModelClient(pwdKeeper.getPassword("gpt4o"), aiFunctionManager));
         aiAgents.add(new GigaModelClient(pwdKeeper.getPassword("giga"), aiFunctionManager));
         aiAgents.add(new SttWebAI("https://5.129.220.87:443/asr", sslContextKeeper));
+
+        SimpleVectorDB rag = new SimpleVectorDB();
+        gigaRagModelClient = new RagModelClient(rag);
+        fillSimpleDB(rag);
     }
 
     public ResponseAI getResponse(Question question) {
         for (AbstractAI agent : aiAgents) {
-            ResponseAI responseAI = agent.getResponse(question);
+            Question ragQuestion = gigaRagModelClient.getResponse(question);
+            ResponseAI responseAI = agent.getResponse(ragQuestion);
             if (responseAI.getStatus() == StatusResponse.FAILED) {
                 logger.warn("AI {} failed", agent.getName());
                 continue;
@@ -55,5 +64,10 @@ public class AIManager {
             throw new RuntimeException("no found agent %s".formatted(name));
         }
         return agentOpt.get();
+    }
+
+    private void fillSimpleDB(SimpleVectorDB rag) {
+
+
     }
 }

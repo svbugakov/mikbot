@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-ssl
+    ports:
+      - "0.0.0.0:443:443"    # ßâíî óêàçûâàåì ïðèâÿçêó êî âñåì èíòåðôåéñàì
+    volumes:
+      - /home/nginx-ssl-docker/nginx/conf.d:/etc/nginx/conf.d
+      - /home/nginx-ssl-docker/ssl:/etc/nginx/ssl
+    restart: unless-stopped
+    networks:
+      - my-network
+      
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: whisper
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - /home/botteleg:/app/uploads  # Если нужно сохранять файлы  
+    networks:
+      - my-network    
+      
+networks:
+  my-network:
+    driver: bridge  

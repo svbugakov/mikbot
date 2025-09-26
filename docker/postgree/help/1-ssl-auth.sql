@@ -1,0 +1,1 @@
+psql -U mik -d mik < init-scripts/2-insert-mik-history-dima_bold1
